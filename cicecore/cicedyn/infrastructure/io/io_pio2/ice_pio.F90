@@ -32,7 +32,7 @@
 #ifdef CESMCOUPLED
   type(iosystem_desc_t), pointer :: ice_pio_subsystem
 #else
-  type(iosystem_desc_t)          :: ice_pio_subsystem
+  type(iosystem_desc_t), save    :: ice_pio_subsystem
 #endif
 
 !===============================================================================
@@ -75,6 +75,7 @@
    integer :: nprocs , lstride, lroot, liotasks, rearranger
    integer :: pio_iotype, status, nmode0, nmode
    logical :: lclobber, exists, ldebug
+   type(file_desc_t) :: lFile
    character(len=*), parameter :: subname = '(ice_pio_init)'
 
 #ifdef CESMCOUPLED
@@ -94,6 +95,10 @@
    call t_initf('undefined_NLFileName', LogPrint=.false., mpicom=MPI_COMM_ICE, &
          MasterTask=.true.)
 #endif
+
+   call ice_pio_check(pio_set_log_level(0), &
+   subname//' ERROR: Failed to set log level '//trim(filename), &
+   file=__FILE__,line=__LINE__)
 
    !--- initialize type of io
    ldebug = .false.
@@ -175,10 +180,11 @@
       write(nu_diag,*) subname,' baseroot   = ',lroot
       write(nu_diag,*) subname,' stride     = ',lstride
       write(nu_diag,*) subname,' nmode      = ',nmode0
+   
    end if
 
    call pio_init(my_task, MPI_COMM_ICE, liotasks, master_task, lstride, &
-                 rearranger, ice_pio_subsystem, base=lroot)
+   rearranger, ice_pio_subsystem, base=lroot)
 
    call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
 
@@ -199,7 +205,7 @@
             if (exists) then
                if (lclobber) then
                   nmode = ior(PIO_CLOBBER,nmode0)
-                  status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  status = pio_createfile(ice_pio_subsystem, lFile, pio_iotype, trim(filename), nmode)
                   call ice_pio_check(status, subname//' ERROR: Failed to overwrite file '//trim(filename), &
                        file=__FILE__,line=__LINE__)
                   if (my_task == master_task) then
@@ -207,7 +213,7 @@
                   end if
                else
                   nmode = pio_write
-                  status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  status = pio_openfile(ice_pio_subsystem, lFile, pio_iotype, trim(filename), nmode)
                   call ice_pio_check( status,  subname//' ERROR: Failed to open file '//trim(filename), &
                        file=__FILE__,line=__LINE__)
                   if (my_task == master_task) then
@@ -216,7 +222,7 @@
                endif
             else
                nmode = ior(PIO_NOCLOBBER,nmode0)
-               status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+               status = pio_createfile(ice_pio_subsystem, lFile, pio_iotype, trim(filename), nmode)
                call ice_pio_check( status, subname//' ERROR: Failed to create file '//trim(filename), &
                     file=__FILE__,line=__LINE__)
                if (my_task == master_task) then
@@ -233,7 +239,7 @@
             if (my_task == master_task) then
                write(nu_diag,*) subname//' opening file for reading '//trim(filename)
             endif
-            status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), pio_nowrite)
+            status = pio_openfile(ice_pio_subsystem, lFile, pio_iotype, trim(filename), pio_nowrite)
             call ice_pio_check( status, subname//' ERROR: Failed to open file '//trim(filename), &
              file=__FILE__,line=__LINE__)
          else
@@ -245,6 +251,8 @@
       end if
 
    end if
+
+   File=lFile
 
    call pio_seterrorhandling(ice_pio_subsystem, PIO_INTERNAL_ERROR)
 
