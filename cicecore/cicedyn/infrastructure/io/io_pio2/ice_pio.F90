@@ -83,7 +83,7 @@
    if ((pio_iotype==PIO_IOTYPE_NETCDF).or.(pio_iotype==PIO_IOTYPE_PNETCDF)) then
       nmode0 = shr_pio_getioformat(inst_name)
    else
-      nmode=0
+      nmode0 = 0
    endif
 
    call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
@@ -193,12 +193,14 @@
          lclobber = .false.
          if (present(clobber)) then
             lclobber=clobber
+            write(nu_diag, *) 'clobber is true'
          endif
 
          if (File%fh<0) then
             ! filename not open
             inquire(file=trim(filename),exist=exists)
             if (exists) then
+               write(nu_diag, *) 'file exists is true'
                if (lclobber) then
                   nmode = ior(PIO_CLOBBER,nmode0)
                   status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
@@ -221,9 +223,9 @@
                status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
                call ice_pio_check( status, subname//' ERROR: Failed to create file '//trim(filename), &
                     file=__FILE__,line=__LINE__)
-               if (my_task == master_task) then
+               ! if (my_task == master_task) then
                   write(nu_diag,*) subname,' create file ',trim(filename)
-               end if
+               ! end if
             endif
          ! else: filename is already open, just return
          endif
