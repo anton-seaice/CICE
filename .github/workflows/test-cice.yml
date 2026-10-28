@@ -36,7 +36,7 @@ jobs:
           - os: macos-latest
             envdef: macos
             testid: M00
-            testsuites: "quick_suite"
+            testsuites: "travis_suite"
             experimental: true
           - os: macos-15
             envdef: macos
